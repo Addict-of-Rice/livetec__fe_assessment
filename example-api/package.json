@@ -1,0 +1,22 @@
+{
+  "name": "example-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Basic Express.js API serving JSON from ../data",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "echo 'no lint configured'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
