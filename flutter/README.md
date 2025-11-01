@@ -100,3 +100,7 @@ CameraPosition(
 - **Map not showing on Android**: Ensure you've added the correct API key and enabled Maps SDK for Android in Google Cloud.
 - **Map not showing on iOS**: Check that the API key is set in Info.plist and Maps SDK for iOS is enabled.
 - **Build errors**: Run `flutter clean && flutter pub get` and try again.
+
+## Additional Dependancies
+- intl 0.20.2
+- calendar_date_picker2
