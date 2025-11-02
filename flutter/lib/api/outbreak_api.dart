@@ -9,7 +9,7 @@ Future<List<Outbreak>> _fetchOutbreaks(
   DateTime to,
   Risk? risk,
 ) async {
-  final data = await fetchApi(
+  final data = await dioService.fetch(
     FetchMethod.get,
     endpoint,
     query: {

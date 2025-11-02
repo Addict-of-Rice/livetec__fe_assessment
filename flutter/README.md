@@ -104,4 +104,4 @@ CameraPosition(
 ## Additional Dependancies
 - intl (date formatting)
 - calendar_date_picker2 (more customisable calendar)
-- http (handle network requests)
+- dio (handle network requests)

@@ -3,7 +3,7 @@ import 'package:livetec_flutter_app/api/fetch_api.dart';
 import 'package:livetec_flutter_app/types/death.dart';
 
 Future<List<Death>> getWildbirdDeaths(DateTime from, DateTime to) async {
-  final data = await fetchApi(
+  final data = await dioService.fetch(
     FetchMethod.get,
     '/api/wildbird-deaths',
     query: {
