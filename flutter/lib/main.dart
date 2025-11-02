@@ -1,14 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:livetec_flutter_app/api/outbreak_api.dart';
+import 'package:livetec_flutter_app/api/wildbird_deaths_api.dart';
 import 'package:livetec_flutter_app/components/bullet_point.dart';
 import 'package:livetec_flutter_app/components/calendar.dart';
 import 'package:livetec_flutter_app/components/icon_button.dart';
+import 'package:livetec_flutter_app/components/map.dart';
 import 'package:livetec_flutter_app/components/map_type_button.dart';
 import 'package:livetec_flutter_app/components/standard_container.dart';
 import 'package:livetec_flutter_app/constants/colors.dart';
 import 'package:livetec_flutter_app/constants/text_styles.dart';
-import 'package:livetec_flutter_app/services/map_service.dart';
+import 'package:livetec_flutter_app/types/death.dart';
+import 'package:livetec_flutter_app/types/map_overlay.dart';
+import 'package:livetec_flutter_app/types/outbreak.dart';
 
 void main() {
   runApp(const LivetecApp());
@@ -38,11 +45,6 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  late GoogleMapController mapController;
-
-  // Default center: UK
-  final LatLng _center = const LatLng(51.5074, -0.1278);
-
   MapType _mapType = MapType.normal;
 
   bool _showFilters = false;
@@ -51,25 +53,155 @@ class _MapPageState extends State<MapPage> {
 
   List<DateTime> _dateRange = [DateTime.now()];
   DateTime? _currentDate;
-  bool _isDateRangePlaying = false;
-  final MapService _mapService = MapService();
   MapOverlay _mapOverlay = MapOverlay();
 
   @override
   void initState() {
     super.initState();
-    _loadMapOverlay();
+    _getNewMapOverlay();
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
+  Future<void> _getNewMapOverlay() async {
+    MapOverlay newMapOverlay = MapOverlay();
+
+    void addOutbreakOverlay(List<Outbreak> outbreaks, Color color, double hue) {
+      for (Outbreak outbreak in outbreaks) {
+        if (outbreak.zoneShape.isNotEmpty) {
+          for (List<LatLng> shape in outbreak.zoneShape) {
+            newMapOverlay.polygons.add(
+              Polygon(
+                polygonId: PolygonId(outbreak.id),
+                points: shape,
+                fillColor: color.withValues(alpha: 0.8),
+                strokeColor: color,
+                strokeWidth: 1,
+                onTap: () => {},
+              ),
+            );
+          }
+        }
+
+        if (outbreak.zoneDiameter > 0) {
+          newMapOverlay.circles.add(
+            Circle(
+              circleId: CircleId(outbreak.id),
+              center: outbreak.location,
+              radius: outbreak.zoneDiameter / 2,
+              fillColor: color.withValues(alpha: 0.8),
+              strokeColor: color,
+              strokeWidth: 1,
+              onTap: () => {},
+            ),
+          );
+        }
+
+        newMapOverlay.markers.add(
+          Marker(
+            markerId: MarkerId(outbreak.id),
+            position: outbreak.location,
+            icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+            onTap: () => {},
+          ),
+        );
+      }
+    }
+
+    void addDeathOverlay(List<Death> deaths, Color color, double hue) {
+      for (Death death in deaths) {
+        newMapOverlay.markers.add(
+          Marker(
+            markerId: MarkerId(death.id),
+            position: death.location,
+            icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+            onTap: () => {},
+          ),
+        );
+      }
+    }
+
+    List<Outbreak> activeOutbreaks = await getActiveOutbreaks(
+      _dateRange.first,
+      _dateRange.last,
+      null,
+    );
+    List<Outbreak> historicalOutbreaks = await getHistoricalOutbreaks(
+      _dateRange.first,
+      _dateRange.last,
+      null,
+    );
+    List<Death> wildbirdDeaths = await getWildbirdDeaths(
+      _dateRange.first,
+      _dateRange.last,
+    );
+
+    List<Outbreak> poultryOutbreaks = activeOutbreaks
+        .where((outbreak) => outbreak.type == 'Poultry')
+        .toList();
+    List<Outbreak> cattleOutbreaks = activeOutbreaks
+        .where((outbreak) => outbreak.type == 'Cattle')
+        .toList();
+
+    addOutbreakOverlay(
+      poultryOutbreaks,
+      AppColors.orangeBulletPoint,
+      BitmapDescriptor.hueOrange,
+    );
+    addOutbreakOverlay(
+      cattleOutbreaks,
+      AppColors.blueBulletPoint,
+      BitmapDescriptor.hueBlue,
+    );
+    addOutbreakOverlay(
+      historicalOutbreaks,
+      AppColors.magentaBulletPoint,
+      BitmapDescriptor.hueMagenta,
+    );
+
+    addDeathOverlay(
+      wildbirdDeaths,
+      AppColors.yellowBulletPoint,
+      BitmapDescriptor.hueYellow,
+    );
+
+    setState(() => _mapOverlay = newMapOverlay);
   }
 
-  void _loadMapOverlay() async {
-    final overlay = await _mapService.getMapOverlay(_dateRange);
+  Timer? _timer;
+  bool _isDateRangePlaying = false;
+
+  void playRangeSlider() {
+    void onTick(DateTime? date) {
+      setState(() {
+        _currentDate = date;
+      });
+    }
+
+    if (_currentDate == null) {
+      _timer?.cancel();
+      DateTime timerDate = _dateRange.first;
+      onTick(timerDate);
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_isDateRangePlaying) {
+          if (timerDate.isAtSameMomentAs(_dateRange.last)) {
+            _isDateRangePlaying = false;
+            timer.cancel();
+            onTick(null);
+          } else {
+            timerDate = timerDate.add(const Duration(days: 1));
+            onTick(timerDate);
+          }
+        }
+      });
+    }
+  }
+
+  void cancelRangeSlider() {
     setState(() {
-      _mapOverlay = overlay;
+      _currentDate = null;
+      _isDateRangePlaying = false;
     });
+    _timer?.cancel();
   }
 
   @override
@@ -86,22 +218,13 @@ class _MapPageState extends State<MapPage> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
-            mapToolbarEnabled: true,
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: CameraPosition(target: _center, zoom: 10.0),
-            myLocationButtonEnabled: true,
-            myLocationEnabled: false,
+          CustomMap(
             mapType: _mapType,
-            zoomControlsEnabled: false,
             onTap: (LatLng position) => setState(() {
               _showFilters = false;
               _showMapLayers = false;
             }),
-            markers: _mapOverlay.markers,
-            circles: _mapOverlay.circles,
-            polygons: _mapOverlay.polygons,
-            polylines: _mapOverlay.polylines,
+            mapOverlay: _mapOverlay,
           ),
 
           AnimatedScale(
@@ -229,8 +352,9 @@ class _MapPageState extends State<MapPage> {
                 child: Calendar(
                   dates: _dateRange,
                   onValueChanged: (newDates) {
+                    cancelRangeSlider();
                     setState(() => _dateRange = newDates);
-                    _loadMapOverlay();
+                    _getNewMapOverlay();
                   },
                 ),
               ),
@@ -294,14 +418,10 @@ class _MapPageState extends State<MapPage> {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                _mapService.playDateRange(
-                                  !_isDateRangePlaying,
-                                  _dateRange,
-                                  (DateTime? newDate) {
-                                    setState(() => _currentDate = newDate);
-                                    print(_currentDate);
-                                  },
-                                );
+                                if (!_isDateRangePlaying) {
+                                  playRangeSlider();
+                                }
+
                                 setState(() {
                                   _isDateRangePlaying = !_isDateRangePlaying;
                                 });
