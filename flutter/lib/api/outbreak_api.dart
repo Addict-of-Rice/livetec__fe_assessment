@@ -20,7 +20,7 @@ Future<List<Outbreak>> _fetchOutbreaks(
   );
 
   if (data == null) return [];
-  return (data as List).map((e) => Outbreak.fromJson(e)).toList();
+  return (data as List).map((element) => Outbreak.fromJson(element)).toList();
 }
 
 Future<List<Outbreak>> getActiveOutbreaks(

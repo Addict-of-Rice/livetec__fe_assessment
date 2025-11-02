@@ -2,7 +2,9 @@ import 'dart:ui';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:livetec_flutter_app/api/outbreak_api.dart';
+import 'package:livetec_flutter_app/api/wildbird_deaths_api.dart';
 import 'package:livetec_flutter_app/constants/colors.dart';
+import 'package:livetec_flutter_app/types/death.dart';
 import 'package:livetec_flutter_app/types/outbreak.dart';
 
 class MapOverlay {
@@ -57,6 +59,19 @@ class MapService {
     }
   }
 
+  void addDeathOverlay(List<Death> deaths, Color color, double hue) {
+    for (Death death in deaths) {
+      overlay.markers.add(
+        Marker(
+          markerId: MarkerId(death.id),
+          position: death.location,
+          icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+          onTap: () => {},
+        ),
+      );
+    }
+  }
+
   Future<MapOverlay> getMapOverlay(List<DateTime> dates) async {
     overlay = MapOverlay();
 
@@ -69,6 +84,10 @@ class MapService {
       dates.first,
       dates.last,
       null,
+    );
+    List<Death> wildbirdDeaths = await getWildbirdDeaths(
+      dates.first,
+      dates.last,
     );
 
     List<Outbreak> poultryOutbreaks = activeOutbreaks
@@ -92,6 +111,12 @@ class MapService {
       historicalOutbreaks,
       AppColors.magentaBulletPoint,
       BitmapDescriptor.hueMagenta,
+    );
+
+    addDeathOverlay(
+      wildbirdDeaths,
+      AppColors.yellowBulletPoint,
+      BitmapDescriptor.hueYellow,
     );
 
     return overlay;
