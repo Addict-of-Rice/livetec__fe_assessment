@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -16,6 +17,8 @@ class MapOverlay {
 
 class MapService {
   MapOverlay overlay = MapOverlay(); // TODO: handle caching to offload backend
+  Timer? _timer;
+  bool _isDateRangePlaying = false;
 
   void addOutbreakOverlay(List<Outbreak> outbreaks, Color color, double hue) {
     for (Outbreak outbreak in outbreaks) {
@@ -46,16 +49,16 @@ class MapService {
             onTap: () => {},
           ),
         );
-      } else {
-        overlay.markers.add(
-          Marker(
-            markerId: MarkerId(outbreak.id),
-            position: outbreak.location,
-            icon: BitmapDescriptor.defaultMarkerWithHue(hue),
-            onTap: () => {},
-          ),
-        );
       }
+
+      overlay.markers.add(
+        Marker(
+          markerId: MarkerId(outbreak.id),
+          position: outbreak.location,
+          icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+          onTap: () => {},
+        ),
+      );
     }
   }
 
@@ -72,22 +75,22 @@ class MapService {
     }
   }
 
-  Future<MapOverlay> getMapOverlay(List<DateTime> dates) async {
+  Future<MapOverlay> getMapOverlay(List<DateTime> dateRange) async {
     overlay = MapOverlay();
 
     List<Outbreak> activeOutbreaks = await getActiveOutbreaks(
-      dates.first,
-      dates.last,
+      dateRange.first,
+      dateRange.last,
       null,
     );
     List<Outbreak> historicalOutbreaks = await getHistoricalOutbreaks(
-      dates.first,
-      dates.last,
+      dateRange.first,
+      dateRange.last,
       null,
     );
     List<Death> wildbirdDeaths = await getWildbirdDeaths(
-      dates.first,
-      dates.last,
+      dateRange.first,
+      dateRange.last,
     );
 
     List<Outbreak> poultryOutbreaks = activeOutbreaks
@@ -120,5 +123,31 @@ class MapService {
     );
 
     return overlay;
+  }
+
+  void playDateRange(
+    bool isDateRangePlaying,
+    List<DateTime> dateRange,
+    void Function(DateTime? newDate) onTick,
+  ) {
+    
+
+    _timer?.cancel();
+    DateTime? currentDate = dateRange.first;
+    onTick(currentDate);
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (isDateRangePlaying) {
+        if (currentDate!.isAfter(dateRange.last)) {
+          currentDate = null;
+          timer.cancel();
+        } else {
+          currentDate = currentDate!.add(const Duration(days: 1));
+        }
+        onTick(currentDate);
+      } else {
+        timer.cancel();
+      }
+    });
   }
 }

@@ -4,7 +4,7 @@ import 'package:livetec_flutter_app/constants/colors.dart';
 
 class Calendar extends StatelessWidget {
   final List<DateTime> dates;
-  final void Function(List<DateTime>)? onValueChanged;
+  final void Function(List<DateTime>) onValueChanged;
 
   const Calendar({
     super.key,
@@ -106,7 +106,14 @@ class Calendar extends StatelessWidget {
           lastDate: DateTime.now(),
         ),
         value: dates,
-        onValueChanged: onValueChanged,
+        onValueChanged: (List<DateTime> values) {
+          // Hard limit to prevent backend overload
+          if (values.last.isAfter(values.first.add(const Duration(days: 90)))) {
+            values.remove(values.first);
+          }
+
+          onValueChanged(values);
+        },
       ),
     );
   }

@@ -49,7 +49,9 @@ class _MapPageState extends State<MapPage> {
   bool _showMapLayers = false;
   bool _showCalendar = false;
 
-  List<DateTime> _dates = [DateTime.now()];
+  List<DateTime> _dateRange = [DateTime.now()];
+  DateTime? _currentDate;
+  bool _isDateRangePlaying = false;
   final MapService _mapService = MapService();
   MapOverlay _mapOverlay = MapOverlay();
 
@@ -64,7 +66,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _loadMapOverlay() async {
-    final overlay = await _mapService.getMapOverlay(_dates);
+    final overlay = await _mapService.getMapOverlay(_dateRange);
     setState(() {
       _mapOverlay = overlay;
     });
@@ -225,9 +227,9 @@ class _MapPageState extends State<MapPage> {
                 height: 300,
                 color: AppColors.primary,
                 child: Calendar(
-                  dates: _dates,
+                  dates: _dateRange,
                   onValueChanged: (newDates) {
-                    setState(() => _dates = newDates);
+                    setState(() => _dateRange = newDates);
                     _loadMapOverlay();
                   },
                 ),
@@ -291,12 +293,27 @@ class _MapPageState extends State<MapPage> {
                         child: Row(
                           children: [
                             GestureDetector(
+                              onTap: () {
+                                _mapService.playDateRange(
+                                  !_isDateRangePlaying,
+                                  _dateRange,
+                                  (DateTime? newDate) {
+                                    setState(() => _currentDate = newDate);
+                                    print(_currentDate);
+                                  },
+                                );
+                                setState(() {
+                                  _isDateRangePlaying = !_isDateRangePlaying;
+                                });
+                              },
                               child: Container(
                                 color: AppColors.tertiary,
                                 height: double.infinity,
                                 width: 60,
                                 child: Icon(
-                                  Icons.play_arrow,
+                                  _isDateRangePlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
                                   size: 36,
                                   color: AppColors.neutral,
                                 ),
@@ -358,9 +375,15 @@ class _MapPageState extends State<MapPage> {
                           ),
                           child: Center(
                             child: Text(
-                              _dates.length <= 1
-                                  ? DateFormat('MMMM dd yyyy').format(_dates[0])
-                                  : '${DateFormat('MMM dd yyyy').format(_dates.first)} -  ${DateFormat('MMM dd yyyy').format(_dates.last)}',
+                              _currentDate != null
+                                  ? DateFormat(
+                                      'MMMM dd yyyy',
+                                    ).format(_currentDate!)
+                                  : _dateRange.length <= 1
+                                  ? DateFormat(
+                                      'MMMM dd yyyy',
+                                    ).format(_dateRange[0])
+                                  : '${DateFormat('MMM dd yyyy').format(_dateRange.first)} -  ${DateFormat('MMM dd yyyy').format(_dateRange.last)}',
                               style: AppTextStyles.inverted,
                             ),
                           ),
