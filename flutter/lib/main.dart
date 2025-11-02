@@ -14,6 +14,7 @@ import 'package:livetec_flutter_app/components/standard_container.dart';
 import 'package:livetec_flutter_app/constants/colors.dart';
 import 'package:livetec_flutter_app/constants/text_styles.dart';
 import 'package:livetec_flutter_app/types/death.dart';
+import 'package:livetec_flutter_app/types/map_element.dart';
 import 'package:livetec_flutter_app/types/map_overlay.dart';
 import 'package:livetec_flutter_app/types/outbreak.dart';
 
@@ -55,20 +56,30 @@ class _MapPageState extends State<MapPage> {
   DateTime? _currentDate;
   MapOverlay _mapOverlay = MapOverlay();
 
+  Set<MapElement> _mapElementSet = {};
+  final List<MapElementCategory> _hiddenCategories = [];
+
   @override
   void initState() {
     super.initState();
-    _getNewMapOverlay();
+    _getMapElementSet();
   }
 
-  Future<void> _getNewMapOverlay() async {
-    MapOverlay newMapOverlay = MapOverlay();
+  Future<void> _getMapElementSet() async {
+    Set<MapElement> newMapElementSet = {};
 
-    void addOutbreakOverlay(List<Outbreak> outbreaks, Color color, double hue) {
+    void addOutbreak(
+      MapElementCategory category,
+      List<Outbreak> outbreaks,
+      Color color,
+      double hue,
+    ) {
       for (Outbreak outbreak in outbreaks) {
+        Set<Polygon>? polygons;
         if (outbreak.zoneShape.isNotEmpty) {
+          polygons = {};
           for (List<LatLng> shape in outbreak.zoneShape) {
-            newMapOverlay.polygons.add(
+            polygons.add(
               Polygon(
                 polygonId: PolygonId(outbreak.id),
                 points: shape,
@@ -81,39 +92,55 @@ class _MapPageState extends State<MapPage> {
           }
         }
 
+        Circle? circle;
         if (outbreak.zoneDiameter > 0) {
-          newMapOverlay.circles.add(
-            Circle(
-              circleId: CircleId(outbreak.id),
-              center: outbreak.location,
-              radius: outbreak.zoneDiameter / 2,
-              fillColor: color.withValues(alpha: 0.8),
-              strokeColor: color,
-              strokeWidth: 1,
-              onTap: () => {},
-            ),
+          circle = Circle(
+            circleId: CircleId(outbreak.id),
+            center: outbreak.location,
+            radius: outbreak.zoneDiameter / 2,
+            fillColor: color.withValues(alpha: 0.8),
+            strokeColor: color,
+            strokeWidth: 1,
+            onTap: () => {},
           );
         }
 
-        newMapOverlay.markers.add(
-          Marker(
-            markerId: MarkerId(outbreak.id),
-            position: outbreak.location,
-            icon: BitmapDescriptor.defaultMarkerWithHue(hue),
-            onTap: () => {},
+        Marker marker = Marker(
+          markerId: MarkerId(outbreak.id),
+          position: outbreak.location,
+          icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+          onTap: () => {},
+        );
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+
+        newMapElementSet.add(
+          MapElement(
+            category: category,
+            minDate: outbreak.started,
+            maxDate: outbreak.ended == null ? today : outbreak.ended!,
+            marker: marker,
+            circle: circle,
+            polygons: polygons,
           ),
         );
       }
     }
 
-    void addDeathOverlay(List<Death> deaths, Color color, double hue) {
+    void addDeath(List<Death> deaths, Color color, double hue) {
       for (Death death in deaths) {
-        newMapOverlay.markers.add(
-          Marker(
-            markerId: MarkerId(death.id),
-            position: death.location,
-            icon: BitmapDescriptor.defaultMarkerWithHue(hue),
-            onTap: () => {},
+        newMapElementSet.add(
+          MapElement(
+            category: MapElementCategory.wildbirdDeaths,
+            minDate: death.date,
+            maxDate: death.date,
+            marker: Marker(
+              markerId: MarkerId(death.id),
+              position: death.location,
+              icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+              onTap: () => {},
+            ),
           ),
         );
       }
@@ -141,28 +168,58 @@ class _MapPageState extends State<MapPage> {
         .where((outbreak) => outbreak.type == 'Cattle')
         .toList();
 
-    addOutbreakOverlay(
+    addOutbreak(
+      MapElementCategory.currentPoultryOutbreaks,
       poultryOutbreaks,
       AppColors.orangeBulletPoint,
       BitmapDescriptor.hueOrange,
     );
-    addOutbreakOverlay(
+    addOutbreak(
+      MapElementCategory.currentCattleOutbreaks,
       cattleOutbreaks,
       AppColors.blueBulletPoint,
       BitmapDescriptor.hueBlue,
     );
-    addOutbreakOverlay(
+    addOutbreak(
+      MapElementCategory.historicalOutbreaks,
       historicalOutbreaks,
       AppColors.magentaBulletPoint,
       BitmapDescriptor.hueMagenta,
     );
 
-    addDeathOverlay(
+    addDeath(
       wildbirdDeaths,
       AppColors.yellowBulletPoint,
       BitmapDescriptor.hueYellow,
     );
 
+    setState(() => _mapElementSet = newMapElementSet);
+    _getMapOverlay();
+  }
+
+  void _getMapOverlay() {
+    MapOverlay newMapOverlay = MapOverlay();
+    for (MapElement element in _mapElementSet) {
+      if (!_hiddenCategories.contains(element.category) &&
+          (_currentDate == null ||
+              ((_currentDate!.isAtSameMomentAs(element.minDate) ||
+                      _currentDate!.isAfter(element.minDate)) &&
+                  (_currentDate!.isBefore(element.maxDate) ||
+                      _currentDate!.isAtSameMomentAs(element.maxDate))))) {
+        if (element.marker != null) {
+          newMapOverlay.markers.add(element.marker!);
+        }
+        if (element.circle != null) {
+          newMapOverlay.circles.add(element.circle!);
+        }
+        if (element.polyline != null) {
+          newMapOverlay.polylines.add(element.polyline!);
+        }
+        if (element.polygons != null) {
+          newMapOverlay.polygons.addAll(element.polygons!);
+        }
+      }
+    }
     setState(() => _mapOverlay = newMapOverlay);
   }
 
@@ -174,6 +231,7 @@ class _MapPageState extends State<MapPage> {
       setState(() {
         _currentDate = date;
       });
+      _getMapOverlay();
     }
 
     if (_currentDate == null) {
@@ -194,6 +252,28 @@ class _MapPageState extends State<MapPage> {
         }
       });
     }
+  }
+
+  void getPreviousDayInRangeSlider() {
+    setState(() {
+      _isDateRangePlaying = false;
+
+      if (_currentDate != null && _currentDate!.isAfter(_dateRange.first)) {
+        _currentDate = _currentDate!.subtract(const Duration(days: 1));
+      }
+    });
+    _getMapOverlay();
+  }
+
+  void getNextDayInRangeSlider() {
+    setState(() {
+      _isDateRangePlaying = false;
+
+      if (_currentDate != null && _currentDate!.isBefore(_dateRange.last)) {
+        _currentDate = _currentDate!.add(const Duration(days: 1));
+      }
+    });
+    _getMapOverlay();
   }
 
   void cancelRangeSlider() {
@@ -354,7 +434,7 @@ class _MapPageState extends State<MapPage> {
                   onValueChanged: (newDates) {
                     cancelRangeSlider();
                     setState(() => _dateRange = newDates);
-                    _getNewMapOverlay();
+                    _getMapElementSet();
                   },
                 ),
               ),
@@ -440,6 +520,7 @@ class _MapPageState extends State<MapPage> {
                               ),
                             ),
                             GestureDetector(
+                              onTap: getPreviousDayInRangeSlider,
                               child: Container(
                                 color: AppColors.primary,
                                 height: double.infinity,
@@ -460,6 +541,7 @@ class _MapPageState extends State<MapPage> {
                               ),
                             ),
                             GestureDetector(
+                              onTap: getNextDayInRangeSlider,
                               child: Container(
                                 color: AppColors.primary,
                                 height: double.infinity,
