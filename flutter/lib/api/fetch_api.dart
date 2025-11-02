@@ -3,11 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 //TODO: move baseUrl to .env
-const baseUrl = 'http://localhost:3000';
+const baseUrl = 'http://10.0.2.2:3000';
 
 enum FetchMethod { get, post, put, delete, patch }
 
-Future<http.Response?> fetchApi(
+Future<dynamic> fetchApi(
   FetchMethod method,
   String path, {
   Map<String, dynamic>? query,

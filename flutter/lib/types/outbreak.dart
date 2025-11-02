@@ -1,19 +1,20 @@
-import 'package:livetec_flutter_app/types/location.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:livetec_flutter_app/types/risk.dart';
+import 'package:livetec_flutter_app/utils/parse_lat_lng.dart';
 
 class Outbreak {
   final String id;
   final String confNumber;
   final String title;
   final Risk risk;
-  final Location location;
+  final LatLng location;
   final String type;
   final String disease;
   final String zone;
   final int zoneDiameter;
-  final List<Location> zoneShape;
+  final List<List<LatLng>> zoneShape;
   final DateTime started;
-  final DateTime ended;
+  final DateTime? ended;
 
   Outbreak(
     this.id,
@@ -36,19 +37,18 @@ class Outbreak {
       json['confNumber'] as String,
       json['title'] as String,
       Risk.values.firstWhere(
-        (r) => r.name.toLowerCase() == (json['risk'] as String).toLowerCase(),
+        (value) =>
+            value.name.toLowerCase() == (json['risk'] as String).toLowerCase(),
         orElse: () => Risk.low,
       ),
-      Location.fromJson(json['location']),
+      parseLatLngFromLocation(json['location']),
       json['type'] as String,
       json['disease'] as String,
       json['zone'] as String,
       json['zoneDiameter'] as int,
-      (json['zoneShape'] as List)
-          .map((e) => Location.fromJson(e))
-          .toList(),
+      parseLatLngFromZoneShapes(json['zoneShape']),
       DateTime.parse(json['started']),
-      DateTime.parse(json['ended']),
+      json['ended'] != null ? DateTime.parse(json['ended']) : null,
     );
   }
 }

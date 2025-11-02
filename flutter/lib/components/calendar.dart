@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:livetec_flutter_app/constants/colors.dart';
 
 class Calendar extends StatelessWidget {
-  final DateTime date;
+  final List<DateTime> dates;
   final void Function(List<DateTime>)? onValueChanged;
 
-  const Calendar({super.key, required this.date, required this.onValueChanged});
+  const Calendar({
+    super.key,
+    required this.dates,
+    required this.onValueChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +23,7 @@ class Calendar extends StatelessWidget {
       ),
       child: CalendarDatePicker2(
         config: CalendarDatePicker2Config(
+          calendarType: CalendarDatePicker2Type.range,
           disableMonthPicker: true,
           dayBuilder:
               ({
@@ -38,9 +43,56 @@ class Calendar extends StatelessWidget {
                 ),
                 child: Text(
                   '${date.day}',
-                  style: isDisabled == true ? TextStyle(color: AppColors.neutral, fontWeight: FontWeight.w300) : TextStyle(color: AppColors.background, fontWeight: FontWeight.w600),
+                  style: isDisabled == true
+                      ? TextStyle(
+                          color: AppColors.neutral,
+                          fontWeight: FontWeight.w300,
+                        )
+                      : TextStyle(
+                          color: AppColors.background,
+                          fontWeight: FontWeight.w600,
+                        ),
                 ),
               ),
+          selectedRangeHighlightBuilder:
+              ({
+                required DateTime dayToBuild,
+                required bool isStartDate,
+                required bool isEndDate,
+              }) {
+                if (isStartDate == true || isEndDate == true) {
+                  return Row(
+                    children: [
+                      if (isStartDate) Expanded(flex: 1, child: Container()),
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.symmetric(
+                              horizontal: BorderSide(
+                                color: AppColors.background,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (isEndDate) Expanded(flex: 1, child: Container()),
+                    ],
+                  );
+                }
+
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border.symmetric(
+                      horizontal: BorderSide(
+                        color: AppColors.background,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                );
+              },
           selectedDayHighlightColor: AppColors.background,
           animateToDisplayedMonthDate: true,
           controlsTextStyle: const TextStyle(
@@ -50,10 +102,10 @@ class Calendar extends StatelessWidget {
           ),
           disabledDayTextStyle: const TextStyle(color: AppColors.neutral),
           modePickersGap: 0,
-          firstDate: DateTime(2010),
+          firstDate: DateTime(2000),
           lastDate: DateTime.now(),
         ),
-        value: [date],
+        value: dates,
         onValueChanged: onValueChanged,
       ),
     );

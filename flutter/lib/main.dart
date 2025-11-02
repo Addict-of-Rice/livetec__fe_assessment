@@ -8,6 +8,7 @@ import 'package:livetec_flutter_app/components/map_type_button.dart';
 import 'package:livetec_flutter_app/components/standard_container.dart';
 import 'package:livetec_flutter_app/constants/colors.dart';
 import 'package:livetec_flutter_app/constants/text_styles.dart';
+import 'package:livetec_flutter_app/services/map_service.dart';
 
 void main() {
   runApp(const LivetecApp());
@@ -42,17 +43,32 @@ class _MapPageState extends State<MapPage> {
   // Default center: UK
   final LatLng _center = const LatLng(51.5074, -0.1278);
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
-
   MapType _mapType = MapType.normal;
 
   bool _showFilters = false;
   bool _showMapLayers = false;
   bool _showCalendar = false;
 
-  DateTime _date = DateTime.now();
+  List<DateTime> _dates = [DateTime.now()];
+  final MapService _mapService = MapService();
+  MapOverlay _mapOverlay = MapOverlay();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMapOverlay();
+  }
+
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
+
+  void _loadMapOverlay() async {
+    final overlay = await _mapService.getMapOverlay(_dates);
+    setState(() {
+      _mapOverlay = overlay;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +96,10 @@ class _MapPageState extends State<MapPage> {
               _showFilters = false;
               _showMapLayers = false;
             }),
-            // markers: ,
+            markers: _mapOverlay.markers,
+            circles: _mapOverlay.circles,
+            polygons: _mapOverlay.polygons,
+            polylines: _mapOverlay.polylines,
           ),
 
           AnimatedScale(
@@ -136,7 +155,7 @@ class _MapPageState extends State<MapPage> {
                               children: [
                                 BulletPoint(
                                   text: 'Current Poultry Outbreaks',
-                                  color: AppColors.redBulletPoint,
+                                  color: AppColors.orangeBulletPoint,
                                 ),
                                 BulletPoint(
                                   text: 'Current Cattle Outbreaks',
@@ -144,7 +163,7 @@ class _MapPageState extends State<MapPage> {
                                 ),
                                 BulletPoint(
                                   text: 'Historical Outbreaks',
-                                  color: AppColors.redBulletPoint,
+                                  color: AppColors.magentaBulletPoint,
                                 ),
                                 BulletPoint(
                                   text: 'Wildbird Deaths',
@@ -206,8 +225,11 @@ class _MapPageState extends State<MapPage> {
                 height: 300,
                 color: AppColors.primary,
                 child: Calendar(
-                  date: _date,
-                  onValueChanged: (dates) => setState(() => _date = dates[0]),
+                  dates: _dates,
+                  onValueChanged: (newDates) {
+                    setState(() => _dates = newDates);
+                    _loadMapOverlay();
+                  },
                 ),
               ),
             ),
@@ -336,7 +358,9 @@ class _MapPageState extends State<MapPage> {
                           ),
                           child: Center(
                             child: Text(
-                              DateFormat('MMMM dd yyyy').format(_date),
+                              _dates.length <= 1
+                                  ? DateFormat('MMMM dd yyyy').format(_dates[0])
+                                  : '${DateFormat('MMM dd yyyy').format(_dates.first)} -  ${DateFormat('MMM dd yyyy').format(_dates.last)}',
                               style: AppTextStyles.inverted,
                             ),
                           ),
