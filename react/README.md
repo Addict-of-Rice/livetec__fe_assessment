@@ -34,3 +34,12 @@ Update props in `src/components/Map.jsx` usage (defaults center to UK):
 ```jsx
 <Map center={{ lat: 51.5074, lng: -0.1278 }} zoom={9} />
 ```
+
+## Additional Dependancies
+
+- typescript
+- eslint
+- dayjs
+- @mui/x-date-picker
+- @mui/material
+- @mui/icons-material

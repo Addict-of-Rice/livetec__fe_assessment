@@ -102,6 +102,7 @@ CameraPosition(
 - **Build errors**: Run `flutter clean && flutter pub get` and try again.
 
 ## Additional Dependancies
+
 - intl (date formatting)
 - calendar_date_picker2 (more customisable calendar)
 - dio (handle network requests)
