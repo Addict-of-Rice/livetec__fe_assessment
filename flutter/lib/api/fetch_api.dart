@@ -74,9 +74,9 @@ class DioService {
     } on DioException catch (error) {
       if (kDebugMode) {
         print('Request failed: ${error.response?.statusCode} ${error.message}');
-        if (error.response != null) {
-          print('Response: ${error.response?.data}');
-        }
+        // if (error.response != null) {
+        //   print('Response: ${error.response?.data}');
+        // }
       }
       return null;
     } catch (error) {

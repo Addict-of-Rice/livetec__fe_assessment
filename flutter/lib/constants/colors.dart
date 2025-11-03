@@ -11,4 +11,6 @@ class AppColors {
   static const blueBulletPoint = Color.fromARGB(255, 117, 147, 174);
   static const magentaBulletPoint = Color.fromARGB(255, 89, 60, 110);
   static const yellowBulletPoint = Color.fromARGB(255, 244, 208, 111);
+  static const azureBulletPoint = Color.fromARGB(255, 0, 127, 255);
+  static const greenBulletPoint = Colors.green;
 }

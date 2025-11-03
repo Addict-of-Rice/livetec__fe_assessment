@@ -1,7 +1,7 @@
 enum Risk {
-  low('low'),
-  medium('medium'),
-  high('high');
+  low('Low'),
+  medium('Medium'),
+  high('High');
 
   final String value;
   const Risk(this.value);

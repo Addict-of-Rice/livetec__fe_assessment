@@ -1,6 +1,7 @@
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
 import 'package:livetec_flutter_app/constants/colors.dart';
+import 'package:livetec_flutter_app/constants/config.dart';
 
 class Calendar extends StatelessWidget {
   final List<DateTime> dates;
@@ -102,13 +103,13 @@ class Calendar extends StatelessWidget {
           ),
           disabledDayTextStyle: const TextStyle(color: AppColors.neutral),
           modePickersGap: 0,
-          firstDate: DateTime(2000),
+          firstDate: calendarMinDate,
           lastDate: DateTime.now(),
         ),
         value: dates,
         onValueChanged: (List<DateTime> values) {
           // Hard limit to prevent backend overload
-          if (values.last.isAfter(values.first.add(const Duration(days: 90)))) {
+          if (values.last.isAfter(values.first.add(const Duration(days: dateRangeLimit)))) {
             values.remove(values.first);
           }
 

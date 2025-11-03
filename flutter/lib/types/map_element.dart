@@ -14,7 +14,8 @@ class MapElement {
   final MapElementCategory category;
   final DateTime minDate;
   final DateTime maxDate;
-  final Marker? marker;
+  final Marker? firstMarker;
+  final Marker? secondMarker;
   final Circle? circle;
   final Polyline? polyline;
   final Set<Polygon>? polygons;
@@ -23,7 +24,8 @@ class MapElement {
     required this.category,
     required this.minDate,
     required this.maxDate,
-    this.marker,
+    this.firstMarker,
+    this.secondMarker,
     this.circle,
     this.polyline,
     this.polygons,

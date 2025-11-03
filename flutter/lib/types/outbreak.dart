@@ -1,5 +1,6 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:livetec_flutter_app/types/risk.dart';
+import 'package:livetec_flutter_app/utils/date_time.dart';
 import 'package:livetec_flutter_app/utils/parse_lat_lng.dart';
 
 class Outbreak {
@@ -47,8 +48,8 @@ class Outbreak {
       json['zone'] as String,
       json['zoneDiameter'] as int,
       parseLatLngFromZoneShapes(json['zoneShape']),
-      DateTime.parse(json['started']),
-      json['ended'] != null ? DateTime.parse(json['ended']) : null,
+      stripTime(DateTime.parse(json['started'])),
+      json['ended'] != null ? stripTime(DateTime.parse(json['ended'])) : null,
     );
   }
 }

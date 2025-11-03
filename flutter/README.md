@@ -105,3 +105,4 @@ CameraPosition(
 - intl (date formatting)
 - calendar_date_picker2 (more customisable calendar)
 - dio (handle network requests)
+- custom_info_window (info window for Google Maps)
